@@ -22,22 +22,25 @@ public class Scratch extends JPanel {
 
     EventsPerSecond fps_obj = new EventsPerSecond();
 
+    Timer timer;
+
     public Scratch() {
-        randomMemBuffer = new byte[this.getWidth() * this.getHeight()];
+        randomMemBuffer = new byte[(this.getWidth() +4)* (this.getHeight()+4)];
 
         this.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent componentEvent) {
                 super.componentResized(componentEvent);
 
-                // Per rapidità di calcolo alloco una 4 bytes per riga in più
-                m_height = getHeight()+4;
-                m_width = getWidth()+4;
-
-                randomMemBuffer = new byte[m_width * m_height];
-                // Riporto tutto al valore corretto per lasciare un buffer maggiore della viewport
-                m_height -=4;
-                m_width -=4;
+                reinitializeBuffer();
+//                // Per rapidità di calcolo alloco una 4 bytes per riga in più
+//                m_height = getHeight()+4;
+//                m_width = getWidth()+4;
+//
+//                randomMemBuffer = new byte[m_width * m_height];
+//                // Riporto tutto al valore corretto per lasciare un buffer maggiore della viewport
+//                m_height -=4;
+//                m_width -=4;
 
                 toBeRepaint = true;
                 getParent().revalidate();
@@ -47,6 +50,30 @@ public class Scratch extends JPanel {
 
         this.setPreferredSize(new Dimension(m_width, m_height));
 
+        int delay = 10; //millisecs tra due chiamate dell'aggiornamento
+        ActionListener repainter = new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                invalidate();
+                repaint();
+
+            }
+        };
+
+
+        timer = new Timer(delay, repainter);
+    }
+
+    private void reinitializeBuffer() {
+        // Per rapidità di calcolo alloco una 4 bytes per riga in più
+        m_height = getHeight()+4;
+        m_width = getWidth()+4;
+
+        randomMemBuffer = new byte[m_width * m_height];
+        // Riporto tutto al valore corretto per lasciare un buffer maggiore della viewport
+        m_height -=4;
+        m_width -=4;
+
     }
 
     public static void main(String[] args) {
@@ -54,16 +81,18 @@ public class Scratch extends JPanel {
         Scratch scratch = new Scratch();
         frame.setContentPane(scratch);
 
-        int delay = 10; //millisecs tra due chiamate dell'aggiornamento
-        ActionListener repainter = new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                scratch.invalidate();
-                scratch.repaint();
+//        int delay = 10; //millisecs tra due chiamate dell'aggiornamento
+//        ActionListener repainterTimer = new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent actionEvent) {
+//                scratch.invalidate();
+//                scratch.repaint();
+//
+//            }
+//        };
+//        new Timer(delay, repainterTimer).start();
 
-            }
-        };
-        new Timer(delay, repainter).start();
+        scratch.startDraw();
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.pack();
@@ -74,7 +103,11 @@ public class Scratch extends JPanel {
     private ColorModel colorModel = createColorModel();
 
     public void paintComponent(Graphics g) {
+        // TODO: Sarebbe meglio farlo quando c'è l'evento di associazione ed un parent ma non so ancora farlo
 
+        if (m_height==0 && m_height==0){
+            reinitializeBuffer();
+        }
         generateData(m_width, m_height);
         drawImage(g, randomMemBuffer);
         if (needsRepaint()) {
@@ -152,5 +185,15 @@ public class Scratch extends JPanel {
         }
 //        sr.nextBytes(randomMemBuffer);
     }
+
+    public void startDraw(){
+        reinitializeBuffer();
+        timer.start();
+    }
+
+    public void stopDraw(){
+        timer.stop();
+    }
+
 
 }
