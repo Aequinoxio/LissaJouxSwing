@@ -1,6 +1,6 @@
 package com.example;
 
-class EventsPerSecond {
+public class EventsPerSecond {
     long m_millisLast;
     long m_millisCurrent;
     int m_events = 0;

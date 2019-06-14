@@ -25,33 +25,56 @@ public class LissajouxPanel {
     private JCheckBox cbInvertV;
     private JButton btnAnimazione;
     private JCheckBox cbSfondo;
+    private JTextField txtMinFase;
+    private JTextField txtMaxFase;
+    private JSpinner spnNumeroRidisegno;
+    private JSpinner spnSpeedAnim;
+    private JButton btnResetAll;
+    private JLabel lblPassoVariazione;
+    private JButton impostaEstremiButton;
 
-    double deltaHoriz = 0.0001d; // delta per variazione parametro orizzontale (bottone oscillaH)
-    double deltaVert = 0.0001d; // delta per variazione parametro verticale   (bottone oscillaV)
+    private int stepsVariazione = 1000; // Passi per il calcolo dei vari punti
+    private double deltaHoriz = 1d / stepsVariazione; // delta per variazione parametro orizzontale (bottone oscillaH)
+    private double deltaVert = 1d / stepsVariazione; // delta per variazione parametro verticale   (bottone oscillaV)
+//    private double deltaHoriz = 0.0001d; // delta per variazione parametro orizzontale (bottone oscillaH)
+//    private double deltaVert = 0.0001d; // delta per variazione parametro verticale   (bottone oscillaV)
+    //private double deltaPassoVariazione = 0.0001d;  // Delta comune er entrambe le direzioni
+
+    private double maxPulsazione = 1.0d;
+    private double minPulsazione = 0.0d;
+
+    private final String numFormat = "%#10.6f";
 
     LissaPanel lissaPanel;
 
     public LissajouxPanel() {
         initLissaPanel();
-//        btnOscillaV.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent actionEvent) {
-//                //JOptionPane.showMessageDialog(null,"ok","ok dialog", JOptionPane.OK_CANCEL_OPTION);
-//                if (lissaPanel == null) {
-//        //            lissaPanel = new LissaPanel(0.5,0.5); //TODO: parametrizzare con param sin/max ecc.
-//                    drawPanel.removeAll();
-//                    drawPanel.add(lissaPanel);
-//                }
-////                drawPanel.invalidate();
-//                drawPanel.revalidate();
-//                drawPanel.repaint();
-//            }
-//        });
+        initInterface();
+    }
+
+
+    private void removeAllActionListenersFromButton(JButton button) {
+        for (ActionListener al : button.getActionListeners()) {
+            button.removeActionListener(al);
+        }
+    }
+
+
+    private void removeAllActionListeners() {
+        removeAllActionListenersFromButton(btnAnimazione);
+        removeAllActionListenersFromButton(btnOscillaH);
+        removeAllActionListenersFromButton(btnOscillaV);
+
+    }
+
+    private void initInterface() {
+        // removeAllActionListeners();  // Rimosso in quanto non resetta lo stato dei bottoni, chiamo la funzione
+        // initInterface solo una volta nel costruttore
         sldHorizontal.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent changeEvent) {
-                double param = (double) sldHorizontal.getValue() / (double) sldHorizontal.getMaximum();
-                lblHorizontal.setText(String.valueOf(param));
+                double param = (maxPulsazione - minPulsazione) * ((double) sldHorizontal.getValue() / (double) sldHorizontal.getMaximum());
+                lblHorizontal.setText(String.format(numFormat, param));
                 txtHorizontal.setText(String.valueOf(param));
                 lissaPanel.setParamSin(param);
                 lissaPanel.revalidate();
@@ -59,11 +82,12 @@ public class LissajouxPanel {
 
             }
         });
+
         sldVertical.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent changeEvent) {
-                double param = (double) sldVertical.getValue() / (double) sldVertical.getMaximum();
-                lblVetical.setText(String.valueOf(param));
+                double param = (maxPulsazione - minPulsazione) * ((double) sldVertical.getValue() / (double) sldVertical.getMaximum());
+                lblVetical.setText(String.format(numFormat, param));
                 txtVertical.setText(String.valueOf(param));
                 lissaPanel.setParamCos(param);
                 lissaPanel.revalidate();
@@ -108,7 +132,7 @@ public class LissajouxPanel {
                 @Override
                 public void actionPerformed(ActionEvent actionEvent) {
 
-                    if (val > 1.0d || val < 0d) {
+                    if (val > maxPulsazione || val < minPulsazione) {
                         deltaHoriz = -deltaHoriz;
                     }
 
@@ -166,7 +190,7 @@ public class LissajouxPanel {
                 @Override
                 public void actionPerformed(ActionEvent actionEvent) {
 
-                    if (val > 1.0d || val < 0d) {
+                    if (val > maxPulsazione || val < minPulsazione) {
                         deltaVert = -deltaVert;
                     }
 
@@ -200,8 +224,10 @@ public class LissajouxPanel {
             }
 
         });
+
+
         btnAnimazione.addActionListener(new ActionListener() {
-            boolean started = false;
+            public boolean started = false;
             Color color_background = btnAnimazione.getBackground();
 
             @Override
@@ -224,6 +250,88 @@ public class LissajouxPanel {
                 lissaPanel.setDrawBackgroundLissa(cbSfondo.isSelected());
             }
         });
+
+        btnResetAll.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                initLissaPanel();
+                updateDaImpostaEstremi();
+                sldHorizontal.setValue(sldHorizontal.getMaximum() / 2);
+                sldHorizontal.updateUI();
+                sldVertical.setValue(sldVertical.getMaximum() / 2);
+                sldVertical.updateUI();
+
+
+                //initInterface();  // Aggiunge di nuovo i listener. Ho rimosso le chiamate a remove listener in quanto non resetta lo stato dei bottoni
+                panel.invalidate();
+                panel.repaint();
+            }
+        });
+
+        impostaEstremiButton.addActionListener(new ActionListener() {
+            // TODO: Aggiornare gli slider, le textarea ed il grafico, fare refresh dell'interfaccia?
+            // vedi sopra
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+//                double valMax = Double.valueOf(txtMaxFase.getText());
+//                double valMin = Double.valueOf(txtMinFase.getText());
+//                //deltaPassoVariazione = (valMax - valMin) / stepsVariazione;
+//                int fattoreNuovoSteps = Math.max(1, (int) ((valMax - valMin) / (maxPulsazione - minPulsazione))); // Formula errata, non si adatta. TODO:
+//                deltaVert =  (valMax - valMin) / (fattoreNuovoSteps * stepsVariazione);
+//                deltaHoriz = (valMax - valMin) / (fattoreNuovoSteps * stepsVariazione);
+//                maxPulsazione = valMax;
+//                minPulsazione = valMin;
+//
+//                // Aggiorno tutto in base alla posizione degli slider
+//                double param = (maxPulsazione - minPulsazione) * ((double) sldHorizontal.getValue() / (double) sldHorizontal.getMaximum());
+//                lblHorizontal.setText(String.format(numFormat, param));
+//                txtHorizontal.setText(String.valueOf(param));
+//                param = (maxPulsazione - minPulsazione) * ((double) sldVertical.getValue() / (double) sldVertical.getMaximum());
+//                lblVetical.setText(String.format(numFormat, param));
+//                txtVertical.setText(String.valueOf(param));
+//
+//                // Dal codice del bottone disegna. TODO: esportare in un metodo privato da richiamare alla bisogna
+//                double paramH = Double.valueOf(txtHorizontal.getText());
+//                double paramV = Double.valueOf(txtVertical.getText());
+//                lissaPanel.setParamSin(paramH);
+//                lissaPanel.setParamCos(paramV);
+
+                updateDaImpostaEstremi();
+                lissaPanel.revalidate();
+                lissaPanel.repaint();
+
+//                sldHorizontal.setMaximum((int) maxPulsazione);
+//                sldHorizontal.setMinimum((int) minPulsazione);
+//                sldVertical.setMaximum((int) maxPulsazione);
+//                sldVertical.setMinimum((int) minPulsazione);
+            }
+        });
+    }
+
+    private void updateDaImpostaEstremi() {
+        double valMax = Double.valueOf(txtMaxFase.getText());
+        double valMin = Double.valueOf(txtMinFase.getText());
+        //deltaPassoVariazione = (valMax - valMin) / stepsVariazione;
+        int fattoreNuovoSteps = Math.max(1, (int) ((valMax - valMin) / (maxPulsazione - minPulsazione))); // Formula errata, non si adatta. TODO:
+        deltaVert = (valMax - valMin) / (fattoreNuovoSteps * stepsVariazione);
+        deltaHoriz = (valMax - valMin) / (fattoreNuovoSteps * stepsVariazione);
+
+        maxPulsazione = valMax;
+        minPulsazione = valMin;
+
+        // Aggiorno tutto in base alla posizione degli slider
+        double param = (maxPulsazione - minPulsazione) * ((double) sldHorizontal.getValue() / (double) sldHorizontal.getMaximum());
+        lblHorizontal.setText(String.format(numFormat, param));
+        txtHorizontal.setText(String.valueOf(param));
+        param = (maxPulsazione - minPulsazione) * ((double) sldVertical.getValue() / (double) sldVertical.getMaximum());
+        lblVetical.setText(String.format(numFormat, param));
+        txtVertical.setText(String.valueOf(param));
+
+        // Dal codice del bottone disegna. TODO: esportare in un metodo privato da richiamare alla bisogna
+        double paramH = Double.valueOf(txtHorizontal.getText());
+        double paramV = Double.valueOf(txtVertical.getText());
+        lissaPanel.setParamSin(paramH);
+        lissaPanel.setParamCos(paramV);
     }
 
     public static void main(String[] args) {
@@ -249,25 +357,66 @@ public class LissajouxPanel {
         double paramH;
         double paramV;
 
-        lissaPanel = new LissaPanel(0.5, 0.5);
         paramH = (double) sldHorizontal.getValue() / (double) sldHorizontal.getMaximum();
         paramV = (double) sldVertical.getValue() / (double) sldVertical.getMaximum();
-        lblHorizontal.setText(String.valueOf(paramH));
+        lissaPanel = new LissaPanel(paramH, paramV);
+        lblHorizontal.setText(String.format(numFormat, paramH));
         txtHorizontal.setText(String.valueOf(paramH));
-        lblVetical.setText(String.valueOf(paramV));
+        lblVetical.setText(String.format(numFormat, paramV));
         txtVertical.setText(String.valueOf(paramV));
+
+        txtMinFase.setText(String.valueOf(minPulsazione));
+        txtMaxFase.setText(String.valueOf(maxPulsazione));
+        lblPassoVariazione.setText(String.valueOf(deltaHoriz));
+
         lissaPanel.setParamSin(paramH);
         lissaPanel.setParamCos(paramV);
         drawPanel.removeAll();
         drawPanel.add(lissaPanel);
         drawPanel.revalidate();
         drawPanel.repaint();
+        SpinnerModel spinnerNumberModel =
+                new SpinnerNumberModel(1, //initial value
+                        1, //min
+                        100, //max
+                        1);                //step
+
+        spnNumeroRidisegno.setModel(spinnerNumberModel);
+        spinnerNumberModel.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent changeEvent) {
+                int val = (int) spnNumeroRidisegno.getModel().getValue();
+                stepsVariazione = 1000 * val; // Ogni periodo viene disegnato con lo stesso numero di steps
+                updateDaImpostaEstremi();
+                lissaPanel.setMaxPeriods(val);
+                drawPanel.revalidate();
+                drawPanel.repaint();
+            }
+        });
+
+        SpinnerModel spinnerSpeedAnimModel =
+                new SpinnerNumberModel(3, //initial value
+                        1, //min
+                        10, //max
+                        1);                //step
+
+        spnSpeedAnim.setModel(spinnerSpeedAnimModel);
+        spnSpeedAnim.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent changeEvent) {
+                int val = (int) spnSpeedAnim.getModel().getValue();
+                lissaPanel.setAnimDelay(val);
+                drawPanel.revalidate();
+                drawPanel.repaint();
+            }
+        });
+
     }
 
     private void createUIComponents() {
-        double paramH = 0.5;
-        double paramV = 0.5;
-        lissaPanel = new LissaPanel(paramH, paramV);
+        double paramH = 1;
+        double paramV = 1;
+        //lissaPanel = new LissaPanel(paramH, paramV);
         drawPanel = new JPanel();
         drawPanel.setPreferredSize(new Dimension(256, 256));
         drawPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -297,12 +446,12 @@ public class LissajouxPanel {
      */
     private void $$$setupUI$$$() {
         panel = new JPanel();
-        panel.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(7, 10, new Insets(10, 10, 10, 10), -1, -1));
+        panel.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(8, 15, new Insets(10, 10, 10, 10), -1, -1));
         panel.setName("TestjpanelName");
         panel.setPreferredSize(new Dimension(-1, -1));
         final JPanel panel1 = new JPanel();
         panel1.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(2, 5, new Insets(0, 0, 0, 0), -1, -1));
-        panel.add(panel1, new com.intellij.uiDesigner.core.GridConstraints(4, 0, 1, 10, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTH, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel.add(panel1, new com.intellij.uiDesigner.core.GridConstraints(5, 0, 1, 15, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_NORTH, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         lblHorizontal = new JLabel();
         lblHorizontal.setText("text");
         panel1.add(lblHorizontal, new com.intellij.uiDesigner.core.GridConstraints(1, 3, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
@@ -315,7 +464,7 @@ public class LissajouxPanel {
         panel1.add(lblVetical, new com.intellij.uiDesigner.core.GridConstraints(1, 4, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JPanel panel2 = new JPanel();
         panel2.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(1, 3, new Insets(0, 0, 0, 0), -1, -1));
-        panel.add(panel2, new com.intellij.uiDesigner.core.GridConstraints(5, 0, 1, 10, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
+        panel.add(panel2, new com.intellij.uiDesigner.core.GridConstraints(6, 0, 1, 15, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         drawPanel = new JPanel();
         drawPanel.setLayout(new BorderLayout(0, 0));
         drawPanel.setMinimumSize(new Dimension(256, 256));
@@ -334,37 +483,81 @@ public class LissajouxPanel {
         panel3.add(sldVertical, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_EAST, com.intellij.uiDesigner.core.GridConstraints.FILL_VERTICAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         final com.intellij.uiDesigner.core.Spacer spacer1 = new com.intellij.uiDesigner.core.Spacer();
         panel3.add(spacer1, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
+        final JPanel panel4 = new JPanel();
+        panel4.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(3, 5, new Insets(0, 0, 0, 0), -1, -1));
+        panel.add(panel4, new com.intellij.uiDesigner.core.GridConstraints(0, 2, 4, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        panel4.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Pulsazione"));
         final JLabel label1 = new JLabel();
-        label1.setText("Parametro orizzontale");
-        panel.add(label1, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        txtHorizontal = new JTextField();
-        panel.add(txtHorizontal, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        label1.setText("Massimo");
+        panel4.add(label1, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        txtMaxFase = new JTextField();
+        panel4.add(txtMaxFase, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(50, -1), null, 0, false));
         final JLabel label2 = new JLabel();
-        label2.setText("Parametro verticale");
-        panel.add(label2, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 2, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        txtVertical = new JTextField();
-        panel.add(txtVertical, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 2, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        label2.setText("Minimo");
+        panel4.add(label2, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        txtMinFase = new JTextField();
+        panel4.add(txtMinFase, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(50, -1), null, 0, false));
         btnOscillaH = new JButton();
         btnOscillaH.setText("Varia autom.");
-        panel.add(btnOscillaH, new com.intellij.uiDesigner.core.GridConstraints(0, 3, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel4.add(btnOscillaH, new com.intellij.uiDesigner.core.GridConstraints(0, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         btnOscillaV = new JButton();
         btnOscillaV.setText("Varia autom.");
-        panel.add(btnOscillaV, new com.intellij.uiDesigner.core.GridConstraints(1, 3, 2, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        cbInvertH = new JCheckBox();
-        cbInvertH.setText("Inverte");
-        panel.add(cbInvertH, new com.intellij.uiDesigner.core.GridConstraints(0, 4, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel4.add(btnOscillaV, new com.intellij.uiDesigner.core.GridConstraints(1, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final JLabel label3 = new JLabel();
+        label3.setText("Passo variazione");
+        panel4.add(label3, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        lblPassoVariazione = new JLabel();
+        lblPassoVariazione.setText("000000000");
+        panel4.add(lblPassoVariazione, new com.intellij.uiDesigner.core.GridConstraints(2, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        impostaEstremiButton = new JButton();
+        impostaEstremiButton.setText("Imposta estremi");
+        panel4.add(impostaEstremiButton, new com.intellij.uiDesigner.core.GridConstraints(2, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final JLabel label4 = new JLabel();
+        label4.setText("Periodi");
+        panel4.add(label4, new com.intellij.uiDesigner.core.GridConstraints(2, 3, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         cbInvertV = new JCheckBox();
         cbInvertV.setText("Inverte");
-        panel.add(cbInvertV, new com.intellij.uiDesigner.core.GridConstraints(1, 4, 2, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel4.add(cbInvertV, new com.intellij.uiDesigner.core.GridConstraints(1, 3, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        cbInvertH = new JCheckBox();
+        cbInvertH.setText("Inverte");
+        panel4.add(cbInvertH, new com.intellij.uiDesigner.core.GridConstraints(0, 3, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        spnNumeroRidisegno = new JSpinner();
+        panel4.add(spnNumeroRidisegno, new com.intellij.uiDesigner.core.GridConstraints(2, 4, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(50, -1), null, 0, false));
+        final JPanel panel5 = new JPanel();
+        panel5.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(3, 2, new Insets(0, 0, 0, 0), -1, -1));
+        panel.add(panel5, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 4, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        panel5.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Pulsazione"));
+        final JLabel label5 = new JLabel();
+        label5.setText("Orizzontale");
+        panel5.add(label5, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final JLabel label6 = new JLabel();
+        label6.setText("Verticale");
+        panel5.add(label6, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        txtHorizontal = new JTextField();
+        panel5.add(txtHorizontal, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(100, -1), null, 0, false));
+        txtVertical = new JTextField();
+        panel5.add(txtVertical, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(100, -1), null, 0, false));
         disegnaButton = new JButton();
         disegnaButton.setText("Disegna");
-        panel.add(disegnaButton, new com.intellij.uiDesigner.core.GridConstraints(3, 1, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel5.add(disegnaButton, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final JPanel panel6 = new JPanel();
+        panel6.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(3, 2, new Insets(0, 0, 0, 0), -1, -1));
+        panel.add(panel6, new com.intellij.uiDesigner.core.GridConstraints(0, 4, 4, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        panel6.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Animazione"));
         btnAnimazione = new JButton();
         btnAnimazione.setText("Animazione");
-        panel.add(btnAnimazione, new com.intellij.uiDesigner.core.GridConstraints(0, 5, 1, 4, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel6.add(btnAnimazione, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         cbSfondo = new JCheckBox();
-        cbSfondo.setText("Sfondo");
-        panel.add(cbSfondo, new com.intellij.uiDesigner.core.GridConstraints(1, 5, 2, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        cbSfondo.setText("Disegna figura di sfondo");
+        panel6.add(cbSfondo, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        spnSpeedAnim = new JSpinner();
+        panel6.add(spnSpeedAnim, new com.intellij.uiDesigner.core.GridConstraints(2, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final JLabel label7 = new JLabel();
+        label7.setText("Velocità");
+        panel6.add(label7, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        btnResetAll = new JButton();
+        btnResetAll.setText("Reset all");
+        panel.add(btnResetAll, new com.intellij.uiDesigner.core.GridConstraints(4, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
     }
 
     /**

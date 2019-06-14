@@ -1,5 +1,6 @@
-package com.example;
+package com.example.OldStuffs;
 
+import com.example.EventsPerSecond;
 import sun.awt.image.IntegerInterleavedRaster;
 
 import javax.swing.*;
@@ -21,14 +22,14 @@ import java.security.SecureRandom;
  * default image format on Windows.
  */
 public class RGBImageLoader extends JPanel {
-    int m_width = 512;
-    int m_height = 512;
-    byte[] randomMemBuffer;
+    private int m_width = 512;
+    private int m_height = 512;
+    private byte[] randomMemBuffer;
     private byte[] tempBuffer_;
     private boolean fastLoading_;
 
-    float m_fps ;
-    EventsPerSecond fps_obj = new EventsPerSecond();
+    private float m_fps ;
+    private EventsPerSecond fps_obj = new EventsPerSecond();
 
     public static void main(String[] args) {
         JFrame frame = new JFrame("Scratch");

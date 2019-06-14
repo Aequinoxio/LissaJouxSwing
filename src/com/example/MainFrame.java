@@ -25,6 +25,7 @@ public class MainFrame {
 
                 pnlMain.add(lissajouxPanel.panel, BorderLayout.CENTER);
                 pnlMain.revalidate();
+                pnlMain.repaint();
             }
         });
         btnRandomPanel.addActionListener(new ActionListener() {

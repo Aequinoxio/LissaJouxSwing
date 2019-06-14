@@ -1,5 +1,6 @@
-package com.example;
+package com.example.OldStuffs;
 
+import com.example.EventsPerSecond;
 import com.sun.imageio.plugins.common.ImageUtil;
 
 import javax.imageio.ImageIO;
